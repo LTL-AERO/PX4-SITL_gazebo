@@ -497,6 +497,12 @@
       <child>gps::link</child>
       <parent>base_link</parent>
     </joint>
+   <plugin name="AerodynamicsPlugin" filename="libgazebo_aerodynamics_plugin.so">
+      <linkName>base_link</linkName>
+      <area>0.6</area>
+      <robotNamespace></robotNamespace>
+      <windSubTopic>world_wind</windSubTopic>
+    </plugin>
     <plugin name="left_wing" filename="libLiftDragPlugin.so">
       <a0>0.05984281113</a0>
       <cla>4.752798721</cla>
