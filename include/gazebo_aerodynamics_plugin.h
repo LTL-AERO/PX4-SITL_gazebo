@@ -51,6 +51,8 @@
 #include <common.h>
 #include <random>
 
+#include <Eigen/Eigen>
+
 #include <gazebo/common/Plugin.hh>
 #include <gazebo/gazebo.hh>
 #include <gazebo/util/system.hh>
@@ -59,12 +61,14 @@
 #include <gazebo/physics/physics.hh>
 #include <ignition/math.hh>
 
+#include "CommandMotorSpeed.pb.h"
 #include <Wind.pb.h>
 
 namespace gazebo
 {
 
 typedef const boost::shared_ptr<const physics_msgs::msgs::Wind> WindPtr;
+typedef const boost::shared_ptr<const mav_msgs::msgs::CommandMotorSpeed> CommandMotorSpeedPtr;
 
 class GAZEBO_VISIBLE AerodynamicsPlugin : public ModelPlugin
 {
@@ -77,9 +81,11 @@ protected:
   virtual void OnUpdate(const common::UpdateInfo&);
 
 private:
-  double getLiftCoefficient();
-  double getDragCoefficient();
-  double getSideSlipCoefficient();
+  double getLiftCoefficient(double alpha);
+  double getDragCoefficient(double alpha);
+  double getMomentCoefficient(double beta);
+  double getSideSlipCoefficient(double beta);
+  void ActuatorCallback(CommandMotorSpeedPtr &rot_velocities);
   void WindVelocityCallback(WindPtr& msg);
 
   physics::ModelPtr model_;
@@ -87,6 +93,7 @@ private:
   physics::LinkPtr link_;
 
   transport::NodePtr node_handle_;
+  transport::SubscriberPtr actuator_sub_;
   transport::SubscriberPtr wind_sub_;
   event::ConnectionPtr updateConnection_;
 
@@ -95,6 +102,19 @@ private:
   std::string link_name_;
 
   double surface_area_;
+
+  double CL_0_;
+  double CD_0_;
+  double CM_0_;
+  double CN_0_;
+  double CL_alpha_;
+  double CD_alpha_;
+  double CM_alpha_;
+  Eigen::VectorXd input_reference_;
+  Eigen::VectorXd cl_delta_vector_;
+  Eigen::VectorXd cd_delta_vector_;
+  Eigen::VectorXd cm_delta_vector_;
+  Eigen::VectorXd cn_delta_vector_;
 
   ignition::math::Vector3d wind_vel_;
 

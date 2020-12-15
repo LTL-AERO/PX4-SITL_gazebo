@@ -81,6 +81,58 @@ void AerodynamicsPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
   } else {
     gzerr << "[gazebo_aerodynamics_plugin] Please specify the surface area.\n";
   }
+  std::string actuator_sub_topic_ = "/gazebo/command/motor_speed";
+  if (_sdf->HasElement("commandSubTopic")) {
+    actuator_sub_topic_ = _sdf->GetElement("commandSubTopic")->Get<std::string>();
+  }
+
+  int n_out_max = 16;
+  cl_delta_vector_ = Eigen::VectorXd::Zero(n_out_max);
+  cd_delta_vector_ = Eigen::VectorXd::Zero(n_out_max);
+  cm_delta_vector_ = Eigen::VectorXd::Zero(n_out_max);
+
+  if (_sdf->HasElement("cl0")) {
+    CL_0_ = _sdf->Get<double>("cl0");
+  }
+  if (_sdf->HasElement("cd0")) {
+    CD_0_ = _sdf->Get<double>("cd0");
+  }
+  if (_sdf->HasElement("cm0")) {
+    CM_0_ = _sdf->Get<double>("cm0");
+  }
+
+  if (_sdf->HasElement("cl_alpha")) {
+    CL_alpha_ = _sdf->Get<double>("cl_alpha");
+  }
+  if (_sdf->HasElement("cd_alpha")) {
+    CD_alpha_ = _sdf->Get<double>("cd_alpha");
+  }
+  if (_sdf->HasElement("cm_alpha")) {
+    CM_alpha_ = _sdf->Get<double>("cm_alpha");
+  }
+
+  if (_sdf->HasElement("control_channels")) {
+    sdf::ElementPtr control_channels = _sdf->GetElement("control_channels");
+    sdf::ElementPtr channel = control_channels->GetElement("channel");
+
+    while (channel) {
+      if (channel->HasElement("input_index")) {
+        int index = channel->Get<int>("input_index");
+        if (index < n_out_max) {
+          if (channel->HasElement("cl_delta")) {
+            cl_delta_vector_[index] = channel->Get<double>("cl_delta");
+          }
+          if (channel->HasElement("cd_delta")) {
+            cd_delta_vector_[index] = channel->Get<double>("cd_delta");
+          }
+          if (channel->HasElement("cm_delta")) {
+            cm_delta_vector_[index] = channel->Get<double>("cm_delta");
+          }
+        }
+      }
+      channel = channel->GetNextElement("channel");
+    }
+  }
 
   // Listen to the update event. This event is broadcast every
   // simulation iteration.
@@ -88,9 +140,7 @@ void AerodynamicsPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
       boost::bind(&AerodynamicsPlugin::OnUpdate, this, _1));
 
   wind_sub_ = node_handle_->Subscribe("~/world_wind", &AerodynamicsPlugin::WindVelocityCallback, this);
-  //TODO: Subscribe to actuator controls
-
-  //TODO: Get aerodynamic parameters
+  actuator_sub_ = node_handle_->Subscribe("~/" + model_->GetName() + actuator_sub_topic_, &AerodynamicsPlugin::ActuatorCallback, this);
 }
 
 void AerodynamicsPlugin::OnUpdate(const common::UpdateInfo&){
@@ -128,42 +178,32 @@ void AerodynamicsPlugin::OnUpdate(const common::UpdateInfo&){
   const double drag_coefficient=0.01;
   const double sideslip_coefficient=0.01;
 
-  const double lift = q_bar_S * getLiftCoefficient();
-  const double drag = q_bar_S * getDragCoefficient();
-  const double sideslip = q_bar_S * getSideSlipCoefficient();
+  const double lift = q_bar_S * getLiftCoefficient(alpha);
+  const double drag = q_bar_S * getDragCoefficient(alpha);
+  const double moment = q_bar_S * getMomentCoefficient(alpha);
+  const double sideslip = q_bar_S * getSideSlipCoefficient(beta);
 
   ignition::math::Vector3d force(-drag, sideslip, lift);
-  ignition::math::Vector3d moment, cp;
-
+  ignition::math::Vector3d cp; //Center of pressure
+  //TODO: Hook this up to a real flight
   // link_->AddForceAtRelativePosition(force, cp);
   // link_->AddTorque(moment);
 }
 
-double AerodynamicsPlugin::getLiftCoefficient() {
-  //TODO: Wire Control inputs
-  double CL_alpha_0 = 0.01;
-  double CL_alpha = 0.01;
-  double CL_alpha_delta = 0.01;
-
-  return CL_alpha_0 + CL_alpha + CL_alpha_delta;
+double AerodynamicsPlugin::getLiftCoefficient(double alpha) {
+  return CL_0_ + CL_alpha_ * alpha + cl_delta_vector_.dot(input_reference_);
 }
 
-double AerodynamicsPlugin::getDragCoefficient() {
-  //TODO: Wire Control inputs
-  double CD_alpha_0 = 0.01;
-  double CD_alpha = 0.01;
-  double CD_alpha_delta = 0.01;
-
-  return CD_alpha_0 + CD_alpha + CD_alpha_delta;
+double AerodynamicsPlugin::getDragCoefficient(double alpha) {
+  return CD_0_ + CD_alpha_ * alpha + cd_delta_vector_.dot(input_reference_);
 }
 
-double AerodynamicsPlugin::getSideSlipCoefficient() {
-  //TODO: Wire Control inputs
-  double C_alpha_0 = 0.01;
-  double C_alpha = 0.01;
-  double C_alpha_delta = 0.01;
+double AerodynamicsPlugin::getMomentCoefficient(double beta) {
+  return CM_0_ + CM_alpha_ * beta + cm_delta_vector_.dot(input_reference_);
+}
 
-  return C_alpha_0 + C_alpha + C_alpha_delta;
+double AerodynamicsPlugin::getSideSlipCoefficient(double beta) {
+  return CN_0_ + CN_beta_ * beta + cn_delta_vector_.dot(input_reference_);
 }
 
 void AerodynamicsPlugin::WindVelocityCallback(WindPtr& msg) {
@@ -172,5 +212,8 @@ void AerodynamicsPlugin::WindVelocityCallback(WindPtr& msg) {
             msg->velocity().z());
 }
 
-//TODO: Add actuator callbacks
+void AerodynamicsPlugin::ActuatorCallback(CommandMotorSpeedPtr &rot_velocities) {
+  //TODO: Subscribe to actuators and filter out what is used and not used
+}
+
 } // namespace gazebo
