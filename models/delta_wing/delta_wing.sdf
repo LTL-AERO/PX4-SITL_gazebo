@@ -298,71 +298,27 @@
         </ode>
       </physics>
     </joint>
-
-    <plugin name="left_wing" filename="libLiftDragPlugin.so">
-      <a0>0.05984281113</a0>
-      <cla>4.752798721</cla>
-      <cda>0.6417112299</cda>
-      <cma>0.0</cma>
-      <alpha_stall>0.3391428111</alpha_stall>
-      <cla_stall>-3.85</cla_stall>
-      <cda_stall>-0.9233984055</cda_stall>
-      <cma_stall>0</cma_stall>
-      <cp>-0.05 0.3 0.05</cp>
-      <area>0.50</area>
-      <air_density>1.2041</air_density>
-      <forward>1 0 0</forward>
-      <upward>0 0 1</upward>
-      <link_name>base_link</link_name>
-      <control_joint_name>
-        flap_left_joint
-      </control_joint_name>
-      <control_joint_rad_to_cl>-0.5</control_joint_rad_to_cl>
+   <plugin name="AerodynamicsPlugin" filename="libgazebo_aerodynamics_plugin.so">
+      <linkName>base_link</linkName>
+      <area>1.2</area>
       <robotNamespace></robotNamespace>
-      <windSubTopic>world_wind</windSubTopic>
-    </plugin>
-    <plugin name="right_wing" filename="libLiftDragPlugin.so">
-      <a0>0.05984281113</a0>
-      <cla>4.752798721</cla>
-      <cda>0.6417112299</cda>
-      <cma>0.0</cma>
-      <alpha_stall>0.3391428111</alpha_stall>
-      <cla_stall>-3.85</cla_stall>
-      <cda_stall>-0.9233984055</cda_stall>
-      <cma_stall>0</cma_stall>
-      <cp>-0.05 -0.45 0.05</cp>
-      <area>0.6</area>
-      <air_density>1.2041</air_density>
-      <forward>1 0 0</forward>
-      <upward>0 0 1</upward>
-      <link_name>base_link</link_name>
-      <control_joint_name>
-        flap_right_joint
-      </control_joint_name>
-      <control_joint_rad_to_cl>-0.5</control_joint_rad_to_cl>
-      <robotNamespace></robotNamespace>
-      <windSubTopic>world_wind</windSubTopic>
-    </plugin>
-    <plugin name="rudder" filename="libLiftDragPlugin.so">
-      <a0>0.0</a0>
-      <cla>4.752798721</cla>
-      <cda>0.6417112299</cda>
-      <cma>0.0</cma>
-      <alpha_stall>0.3391428111</alpha_stall>
-      <cla_stall>-3.85</cla_stall>
-      <cda_stall>-0.9233984055</cda_stall>
-      <cma_stall>0</cma_stall>
-      <cp>-0.5 0 0.05</cp>
-      <area>0.02</area>
-      <air_density>1.2041</air_density>
-      <forward>1 0 0</forward>
-      <upward>0 1 0</upward>
-      <link_name>base_link</link_name>
-      <!-- <control_joint_name> 
-         rudder_joint 
-      </control_joint_name>  -->
-      <control_joint_rad_to_cl>4.0</control_joint_rad_to_cl>
-      <robotNamespace></robotNamespace>
+      <cl0>4.752798721</cl0>
+      <cd0>0.0</cd0>
+      <cm0>0.0</cm0>
+      <control_channels>
+        <channel name="left_aileron">
+          <index>2</index>
+          <cl_delta>-0.5</cl_delta>
+          <cd_delta>0.0</cd_delta>
+          <cm_delta>0.0</cm_delta>
+        </channel>
+        <channel name="right_aileron">
+          <index>3</index>
+          <cl_delta>-0.5</cl_delta>
+          <cd_delta>0.0</cd_delta>
+          <cm_delta>0.0</cm_delta>
+        </channel>
+      </control_channels>
       <windSubTopic>world_wind</windSubTopic>
     </plugin>
     <plugin name='puller' filename='libgazebo_motor_model.so'>
